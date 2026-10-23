@@ -1,22 +1,6 @@
 MIT License
 
-Copyright (c) 2026 小黄桌宠 (XiaoHuang Desktop Pet) contributors
-
-## 适用范围（重要，请先读这段）
-
-本许可证**只覆盖本仓库作者原创的部分**：
-
-- `形象/`、`预览/` 目录下的全部图片与视频
-- `素材.nwp` 中的形象素材（由作者自制 3D 渲染视频处理而来）
-- `源码/tools/` 下的全部素材生成脚本
-- `README.md`、`使用说明.txt`
-- `源码/Naiwa.cs` 中作者新增的修改（第二眼球图层、命令行参数、菜单文案、形象相关常量等）
-
-**不覆盖**：`源码/Naiwa.cs` 的主体结构（`Motion` 状态机、`Renderer` 渲染、`PetForm` 分层窗口等），
-它来自 [yugh6](https://github.com/yugh6) 的「奶蛙桌宠」项目，版权归原作者所有，其授权条款不受本文件影响。
-本仓库保留原作者署名，**不得**将本项目的程序部分冒充原创，**不得**在未获原作者许可的情况下用于商业用途。
-
-## 许可正文
+Copyright (c) 2026 bbtnoctrl
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -35,3 +19,8 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+---
+
+本仓库的程序代码基于 yugh6 的「奶蛙桌宠」修改而来，原作者署名与相关声明见
+[NOTICE.md](NOTICE.md)。形象素材、素材生成脚本与文档由本仓库作者原创。
