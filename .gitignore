@@ -1,0 +1,14 @@
+# 运行时 / 本地生成物
+*.ini
+settings.ini
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# 素材中间产物：由 源码/tools/ 下的脚本生成，内容和 素材.nwp 里的 PNG 重复
+素材源/
+
+# 临时
+*.tmp
+*.log
+~$*
