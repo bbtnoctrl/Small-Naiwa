@@ -14,7 +14,7 @@
 
 #### ① 纯鼠标：`.deb` 安装包 ⭐ 推荐（Ubuntu / Debian / 麒麟 / UOS / Deepin）
 
-1. 到 **[Releases](https://github.com/bbtnoctrl/Small-Naiwa/releases/latest)** 下载 **`xiaohuang_1.3.0_amd64.deb`**
+1. 到 **[Releases](https://github.com/bbtnoctrl/Small-Naiwa/releases/latest)** 下载 **`xiaohuang_1.5.0_amd64.deb`**
 2. **双击它** —— 系统会打开「软件安装」窗口
 3. 点「安装」，弹出密码框时输入开机密码
 4. 在应用菜单里搜「小黄」，点开即用
@@ -23,6 +23,10 @@
 
 > 这个方式不用管「打开方式」「允许作为程序执行」「libfuse」这些事——全都由安装器处理。
 > 如果你的系统是 rpm 系（Fedora / CentOS / openEuler），请用 ② 或 ③。
+>
+> **如果安装时弹「非常抱歉，我们无法确定错误所在」**：那是 GNOME 软件的通用提示，不代表包坏了。
+> 换成这两种任一即可：① 右键 .deb →「用其他应用打开」→ 选 **GDebi** / 软件包安装器；
+> ② 改用下面 ② 的免安装包（普通可执行程序，不需要 FUSE）。
 
 #### ② 免安装：解压后双击（任何发行版，**不需要 FUSE**）
 
@@ -142,7 +146,7 @@ Linux 版是**本项目独立实现的一套桌宠外壳**，不是把 exe 塞�
 
 | 文件 | 说明 |
 | --- | --- |
-| `xiaohuang_1.3.0_amd64.deb` | deb 系发行版的安装包，双击安装 |
+| `xiaohuang_1.5.0_amd64.deb` | deb 系发行版的安装包，双击安装 |
 | `xiaohuang-linux-x86_64.tar.gz` | 解压即用（AppImage + 素材 + 说明） |
 | `xiaohuang-x86_64.AppImage` | 单文件 AppImage |
 | `xiaohuang` + `assets.nwp` | 单文件可执行程序 + 素材 |

@@ -107,10 +107,10 @@ jobs:
           fi
           printf '%s\n' '[Desktop Entry]' 'Type=Application' 'Name=小黄桌宠' 'Name[en]=XiaoHuang Desktop Pet' 'Comment=会转眼、眨眼、戳肚子、双击啄肚肚的桌面宠物' 'Exec=/opt/xiaohuang/xiaohuang' 'Path=/opt/xiaohuang' 'Icon=xiaohuang' 'Terminal=false' 'Categories=Game;Amusement;' > deb/usr/share/applications/xiaohuang.desktop
           ln -sf /opt/xiaohuang/xiaohuang deb/usr/bin/xiaohuang
-          printf '%s\n' 'Package: xiaohuang' 'Version: 1.3.0' 'Section: games' 'Priority: optional' 'Architecture: amd64' 'Maintainer: bbtnoctrl <299799212+bbtnoctrl@users.noreply.github.com>' 'Depends: libxcb-cursor0' 'Description: XiaoHuang Desktop Pet' ' A small desktop pet that blinks, tracks your cursor and pokes its belly.' > deb/DEBIAN/control
+          printf '%s\n' 'Package: xiaohuang' 'Version: 1.5.0' 'Section: games' 'Priority: optional' 'Architecture: amd64' 'Installed-Size: 102400' 'Maintainer: bbtnoctrl <299799212+bbtnoctrl@users.noreply.github.com>' 'Recommends: libxcb-cursor0' 'Description: XiaoHuang Desktop Pet' ' A small desktop pet that blinks, tracks your cursor and pokes its belly.' > deb/DEBIAN/control
           chmod 755 deb/DEBIAN deb/opt/xiaohuang/xiaohuang
           chmod 644 deb/usr/share/applications/xiaohuang.desktop
-          dpkg-deb --build --root-owner-group deb xiaohuang_1.3.0_amd64.deb
+          dpkg-deb --build --root-owner-group deb xiaohuang_1.5.0_amd64.deb
           ls -lh *.deb
 
       - name: 上传构建产物
@@ -121,7 +121,7 @@ jobs:
             Linux版/dist/xiaohuang
             xiaohuang-x86_64.AppImage
             xiaohuang-linux-x86_64.tar.gz
-            xiaohuang_1.3.0_amd64.deb
+            xiaohuang_1.5.0_amd64.deb
           if-no-files-found: warn
 
       - name: 发布到 Release（打 tag 时）
@@ -129,7 +129,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            xiaohuang_1.3.0_amd64.deb
+            xiaohuang_1.5.0_amd64.deb
             xiaohuang-linux-x86_64.tar.gz
             xiaohuang-x86_64.AppImage
             Linux版/dist/xiaohuang
@@ -140,7 +140,7 @@ jobs:
 
             ### ① 纯鼠标：.deb 安装包（Ubuntu / Debian / 麒麟 / UOS 推荐）
 
-            1. 下载 xiaohuang_1.3.0_amd64.deb
+            1. 下载 xiaohuang_1.5.0_amd64.deb
             2. 双击它 —— 会打开软件安装窗口
             3. 点「安装」（会弹一次密码框，输入开机密码）
             4. 应用菜单里搜「小黄」，点开即用
@@ -170,7 +170,7 @@ jobs:
             | --- | --- |
             | 双击 AppImage 没反应 | 属性 → 权限 → 勾「允许作为程序执行」，再右键「运行」 |
             | 提示 FUSE / libfuse.so.2 | 改用 .deb，或执行 ./xiaohuang.AppImage --appimage-extract-and-run |
-            | 提示 libxcb-cursor 缺失 | .deb 已声明该依赖会自动装；手动：sudo apt install libxcb-cursor0 |
+            | 安装 .deb 时报「非常抱歉，我们无法确定错误所在」 | 这是 GNOME 软件的通用提示，真实原因通常是它的后端问题。换成：右键 .deb →「用其他应用打开」→ 选 GDebi/软件包安装器；或用 ② 的免安装包（已验证无需 FUSE） |
 
             ---
 
