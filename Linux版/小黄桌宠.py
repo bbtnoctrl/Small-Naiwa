@@ -21,6 +21,7 @@ import math
 import time
 import os
 import random
+import subprocess
 import sys
 import zipfile
 from collections import OrderedDict
@@ -160,6 +161,12 @@ class Pet(QWidget):
         self.drag_off = QPoint()
         self.drag_last_x = 0
         self.drag_vel = 0.0
+        self.pressed = False
+        self.press_amt = 1.0        # 按下时的压扁量
+        self.land_start = -1.0      # 松手落地弹跳
+        self.land_amp = 0.0
+        self.poke_amt = 0.0         # 戳肚子的凹陷程度 0~1
+        self.fs_hidden = False
         self.hidden_by_fs = False
         self.composite_key = None
         self.composite = None
@@ -175,6 +182,11 @@ class Pet(QWidget):
 
         self._build_menu()
         self._build_tray()
+
+        self.fs_timer = QTimer(self)
+        self.fs_timer.timeout.connect(self._check_fullscreen)
+        if self.hide_fullscreen and QGuiApplication.platformName() == "xcb":
+            self.fs_timer.start(2000)
 
     # -- 时间
     @property
@@ -341,6 +353,7 @@ class Pet(QWidget):
         self.down_global = e.globalPosition().toPoint()
         self.down_time = self.clock
         self.poke_pending = False
+        self.pressed = True
         e.accept()
 
     def mouseMoveEvent(self, e):
@@ -360,11 +373,15 @@ class Pet(QWidget):
     def mouseReleaseEvent(self, e):
         if e.button() != Qt.MouseButton.LeftButton:
             return
+        self.pressed = False
         if self.dragging:
             self.dragging = False
             self.tilt_target = 0.0
             self._save_pos()
             self.home_clamp()
+            # 落地弹跳：拖得越快弹得越明显
+            self.land_amp = min(0.085, 0.03 + abs(self.drag_vel) * 0.004)
+            self.land_start = self.clock
         else:
             # 先不立刻戳，等 260ms：如果是双击，mouseDoubleClickEvent 会把它取消掉
             if self.in_belly(self.down_pos):
@@ -390,6 +407,38 @@ class Pet(QWidget):
         y = max(g.top(), min(self.y(), g.bottom() - 20))
         self.move(x, y)
         self._save_pos()
+
+    # -- 全屏自动隐藏（仅 X11 有效）
+    def _check_fullscreen(self):
+        if not self.hide_fullscreen:
+            if self.fs_hidden:
+                self.show()
+                self.fs_hidden = False
+            return
+        try:
+            out = subprocess.run(["xdotool", "getactivewindow", "getwindowgeometry", "--shell"],
+                                 capture_output=True, text=True, timeout=2)
+        except Exception:
+            self.fs_timer.stop()      # 没有 xdotool 就不再检测
+            return
+        geo = {}
+        for line in out.stdout.splitlines():
+            if "=" in line:
+                k, v = line.split("=", 1)
+                geo[k.strip()] = v.strip()
+        if "WIDTH" not in geo or "HEIGHT" not in geo:
+            return
+        w = int(geo["WIDTH"]); h = int(geo["HEIGHT"])
+        scr = (self.screen() or QGuiApplication.primaryScreen()).geometry()
+        fullscreen = w >= scr.width() - 2 and h >= scr.height() - 2
+        if fullscreen and not self.fs_hidden:
+            if self.laugh_start >= 0:
+                self.stop_laugh()
+            self.hide()
+            self.fs_hidden = True
+        elif not fullscreen and self.fs_hidden:
+            self.show()
+            self.fs_hidden = False
 
     # -- 每帧
     def _tick(self):
@@ -427,6 +476,27 @@ class Pet(QWidget):
 
         # 倾斜回正
         self.tilt += (self.tilt_target - self.tilt) * min(1.0, dt / 0.12)
+
+        # 按压量（按下时压扁，松手回弹）
+        target = 0.982 if self.pressed else 1.0
+        self.press_amt += (target - self.press_amt) * min(1.0, dt / 0.05)
+
+        # 落地弹跳计时
+        if self.land_start >= 0 and self.clock - self.land_start > 0.34:
+            self.land_start = -1.0
+
+        # 戳肚子凹陷量：快进慢出
+        if self.poke_start >= 0:
+            t = self.clock - self.poke_start
+            if t < 0.13:
+                self.poke_amt = t / 0.13
+            elif t < 0.42:
+                self.poke_amt = 1.0 - 0.12 * ((t - 0.13) / 0.29)
+            elif t < 1.0:
+                self.poke_amt = 0.88 * (1.0 - (t - 0.42) / 0.58)
+            else:
+                self.poke_amt = 0.0
+                self.poke_start = -1.0
 
         # 啄肚肚结束
         if self.laugh_start >= 0:
@@ -479,6 +549,32 @@ class Pet(QWidget):
             self.composite_key = key
         return self.composite
 
+    def _draw_local_warp(self, p, img, w, h):
+        """肚子那一段局部压缩：脚不动，头随之下沉，肚子被压扁 + 横向微胀。"""
+        amt = self.poke_amt
+        if amt <= 0.01:
+            p.drawImage(QRectF(0, 0, w, h), img, QRectF(0, 0, img.width(), img.height()))
+            return
+        iw, ih = img.width(), img.height()
+        K = 0.20 * amt                      # 压扁比例
+        sy = h / float(ih)
+        cy = BELLY_CY / float(self.a.h) * ih
+        band = ih * 0.34
+        top_end = max(1.0, cy - band / 2.0)
+        bot_start = min(ih - 1.0, cy + band / 2.0)
+        band_h = bot_start - top_end
+        band_k = band_h * (1.0 - K)
+        delta = band_h - band_k             # 头往下沉的量
+        bot_h = ih - bot_start
+        ex = w * 0.035 * amt                # 横向微胀
+        # 头部：整体下沉 delta
+        p.drawImage(QRectF(0, delta * sy, w, top_end * sy), img, QRectF(0, 0, iw, top_end))
+        # 肚子：压扁，底边贴住脚
+        p.drawImage(QRectF(-ex, (top_end + delta) * sy, w + 2 * ex, band_k * sy),
+                    img, QRectF(0, top_end, iw, band_h))
+        # 脚：原地不动
+        p.drawImage(QRectF(0, bot_start * sy, w, bot_h * sy), img, QRectF(0, bot_start, iw, bot_h))
+
     def paintEvent(self, e):
         img = self._compose()
         if img is None:
@@ -486,31 +582,25 @@ class Pet(QWidget):
         p = QPainter(self)
         p.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, True)
 
-        # 戳肚子：整只小黄纵向压一下再弹回
         sx = sy = 1.0
-        lift = 0.0
-        if self.poke_start >= 0:
-            t = self.clock - self.poke_start
-            if t < 0.16:
-                q = t / 0.16
-                sy = 1.0 - 0.07 * q
-                sx = 1.0 + 0.035 * q
-            elif t < 0.55:
-                q = (t - 0.16) / 0.39
-                sy = 0.93 + 0.10 * math.sin(q * math.pi)
-                sx = 1.035 - 0.05 * math.sin(q * math.pi)
-            elif t < 0.9:
-                q = (t - 0.55) / 0.35
-                sy = 1.0 + 0.02 * math.sin(q * math.pi * 2) * (1 - q)
-                sx = 1.0 - 0.01 * math.sin(q * math.pi * 2) * (1 - q)
-            else:
-                self.poke_start = -1
+        # 按住时的压扁
+        sy *= self.press_amt
+        sx *= 1.0 + (1.0 - self.press_amt) * 0.8
 
-        p.translate(self.width() / 2.0, self.height())
+        # 落地弹跳：衰减振荡
+        if self.land_start >= 0:
+            q = (self.clock - self.land_start) / 0.34
+            if 0.0 <= q <= 1.0:
+                osc = math.sin(q * math.pi * 2.2) * (1.0 - q) * self.land_amp
+                sy *= 1.0 - osc
+                sx *= 1.0 + osc * 0.7
+
+        w, h = self.width(), self.height()
+        p.translate(w / 2.0, h)
         p.rotate(self.tilt)
         p.scale(sx, sy)
-        target = QRectF(-self.width() / 2.0, -self.height(), self.width(), self.height())
-        p.drawImage(target, img, QRectF(0, 0, img.width(), img.height()))
+        p.translate(-w / 2.0, -h)
+        self._draw_local_warp(p, img, w, h)
         p.end()
 
     def closeEvent(self, e):
