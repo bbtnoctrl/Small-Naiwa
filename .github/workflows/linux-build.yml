@@ -68,10 +68,7 @@ jobs:
             cp xiaohuang-x86_64.AppImage pack/xiaohuang.AppImage
             chmod +x pack/xiaohuang.AppImage
           fi
-          cp Linux版/dist/xiaohuang pack/xiaohuang
-          chmod +x pack/xiaohuang
           cp 素材.nwp pack/素材.nwp
-          cp 素材.nwp pack/assets.nwp
           cp 使用说明.txt pack/使用说明.txt
           printf '%s\n' \
             '小黄桌宠 · Linux 版' \
