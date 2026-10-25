@@ -1,6 +1,5 @@
 name: Linux 打包
 
-# 推送到 main（改动了 Linux 版或本文件）、打 v* 标签、或手动运行时构建。
 on:
   push:
     branches: [main]
@@ -36,7 +35,7 @@ jobs:
           pyinstaller --noconfirm --clean --onefile --name xiaohuang 小黄桌宠.py
           ls -lh dist/
 
-      - name: 打成可直接双击的 AppImage
+      - name: 打成 AppImage
         continue-on-error: true
         run: |
           set -e
@@ -58,8 +57,43 @@ jobs:
           ARCH=x86_64 ./appimagetool --appimage-extract-and-run AppDir xiaohuang-x86_64.AppImage
           ls -lh *.AppImage
 
-      - name: 准备 Release 用的 ASCII 文件名
+      - name: 生成 ASCII 素材别名
         run: cp 素材.nwp assets.nwp
+
+      - name: 打包 tar.gz（解压后双击即可，免终端）
+        run: |
+          set -e
+          mkdir -p pack
+          if [ -f xiaohuang-x86_64.AppImage ]; then
+            cp xiaohuang-x86_64.AppImage pack/xiaohuang.AppImage
+            chmod +x pack/xiaohuang.AppImage
+          fi
+          cp Linux版/dist/xiaohuang pack/xiaohuang
+          chmod +x pack/xiaohuang
+          cp 素材.nwp pack/素材.nwp
+          cp 素材.nwp pack/assets.nwp
+          cp 使用说明.txt pack/使用说明.txt
+          printf '%s\n' \
+            '小黄桌宠 · Linux 版' \
+            '' \
+            '【最省事：图形界面，不用开终端】' \
+            '1. 先把整个压缩包解压（右键 → 解压到此处）' \
+            '2. 双击 xiaohuang.AppImage 即可运行' \
+            '3. 如果双击没反应：右键它 → 属性 → 权限 → 勾选“允许作为程序执行”，再双击' \
+            '' \
+            '【如果提示 FUSE 错误（容器/精简系统）】' \
+            '   在终端里执行：./xiaohuang.AppImage --appimage-extract-and-run' \
+            '' \
+            '【右键菜单】' \
+            '   小黄身上右键：啄肚肚 / 停止 / 大小 / 置顶 / 全屏隐藏 / 回到右下角 / 退出' \
+            '' \
+            '【素材】' \
+            '   AppImage 已内置素材，不需要额外文件；' \
+            '   如果用的是可执行文件 xiaohuang，则必须和 素材.nwp 放在同一目录' \
+            > pack/使用说明-先看这个.txt
+          tar -czf xiaohuang-linux-x86_64.tar.gz -C pack .
+          ls -lh xiaohuang-linux-x86_64.tar.gz
+          tar -tzf xiaohuang-linux-x86_64.tar.gz
 
       - name: 上传构建产物
         uses: actions/upload-artifact@v4
@@ -68,6 +102,7 @@ jobs:
           path: |
             Linux版/dist/xiaohuang
             xiaohuang-x86_64.AppImage
+            xiaohuang-linux-x86_64.tar.gz
           if-no-files-found: warn
 
       - name: 发布到 Release（打 tag 时）
@@ -75,19 +110,43 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
+            xiaohuang-linux-x86_64.tar.gz
+            xiaohuang-x86_64.AppImage
             Linux版/dist/xiaohuang
             assets.nwp
-            xiaohuang-x86_64.AppImage
           fail_on_unmatched_files: false
           body: |
-            ## Linux 版下载说明
+            ## Linux 用户：下载哪个？
 
-            | 文件 | 适合谁 | 用法 |
-            | --- | --- | --- |
-            | xiaohuang-x86_64.AppImage | 大多数人（推荐） | 下载后 `chmod +x` 再双击；免安装、免 Python、素材已内置 |
-            | xiaohuang | 想自己管理素材 | 单文件可执行程序，与 assets.nwp 放同一文件夹，运行 `./xiaohuang` |
-            | assets.nwp | 配合上一行 | 素材包（也可改名回 `素材.nwp`） |
+            ### 方案一（推荐，双击就行，不用开终端）
 
-            AppImage 提示缺少 FUSE 时：`./xiaohuang-x86_64.AppImage --appimage-extract-and-run`
+            1. 下载 `xiaohuang-linux-x86_64.tar.gz`
+            2. 右键 → 「**解压到此处**」
+            3. 双击里面的 **`xiaohuang.AppImage`** —— 运行
 
-            Windows 用户请直接在仓库根目录下载 `小黄桌宠.exe` 和 `素材.nwp`。
+            > 压缩包会把「可执行权限」一起解出来，所以解压后双击就能跑，不需要 `chmod`。
+            > 如果双击没反应：右键 AppImage → 属性 → 权限 → 勾选「允许作为程序执行」，再双击。
+
+            ### 方案二：直接下 AppImage（需要一次权限设置）
+
+            | 步骤 | 操作 |
+            | --- | --- |
+            | 1 | 下载 `xiaohuang-x86_64.AppImage` |
+            | 2 | 右键 → 属性 → 权限 → 勾选「允许作为程序执行」（或终端 `chmod +x 文件名`） |
+            | 3 | 双击运行 |
+
+            ### 方案三：可执行文件 + 素材
+
+            下载 `xiaohuang` 和 `assets.nwp`，放在同一个文件夹，双击 `xiaohuang`（或运行 `./xiaohuang`）。
+
+            提示 FUSE 错误时：`./xiaohuang.AppImage --appimage-extract-and-run`
+
+            ---
+
+            ## Windows 用户
+
+            在本仓库首页下载 `小黄桌宠.exe` + `素材.nwp`，放同一文件夹，双击 exe。
+
+            ## 从源码运行（给要改代码的人）
+
+            `git clone` 后在 `Linux版/` 里执行 `./run.sh`，依赖会自动安装。

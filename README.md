@@ -10,44 +10,46 @@
 
 ## 快速开始
 
-### 直接下载现成程序（推荐，不用编译）
+### Linux：不用开终端，双击就能跑
 
-到 **[Releases](https://github.com/bbtnoctrl/Small-Naiwa/releases/latest)** 页面，按系统挑一个：
+1. 到 **[Releases](https://github.com/bbtnoctrl/Small-Naiwa/releases/latest)** 下载 **`xiaohuang-linux-x86_64.tar.gz`**（约 100 MB）
+2. 右键压缩包 →「**解压到此处**」
+3. 双击解压出来的 **`xiaohuang.AppImage`** —— 小黄就出来了
 
-| 系统 | 下载 | 怎么用 | 说明 |
-| --- | --- | --- | --- |
-| **Linux（推荐）** | `xiaohuang-x86_64.AppImage`（99 MB） | 下载后执行 `chmod +x xiaohuang-x86_64.AppImage`，再双击或在终端 `./xiaohuang-x86_64.AppImage` | 免安装、**免 Python**；Python 运行时 + PyQt6 + numpy + 素材**全都打包在文件里**，运行时不联网 |
-| Linux（想自己换素材） | `xiaohuang`（84 MB）+ `assets.nwp`（15 MB） | 两个文件放同一目录，`chmod +x xiaohuang && ./xiaohuang` | 单文件可执行程序，换形象只需替换 `assets.nwp` |
-| **Windows** | 本仓库里的 `小黄桌宠.exe` + `素材.nwp` | 放同一目录，双击 exe | 需要 .NET Framework 4.x（Win10/11 自带） |
+> 压缩包会把可执行权限一起解出来，所以**不需要 `chmod`、不需要终端**。
+> 若双击没反应（部分文件管理器默认不执行）：右键 AppImage →「属性」→「权限」→ 勾选「**允许作为程序执行**」，再双击。
 
-**Linux 双击打不开时**（文件管理器没勾“允许执行”）：
-
-```bash
-chmod +x xiaohuang-x86_64.AppImage     # 加执行权限
-./xiaohuang-x86_64.AppImage            # 或在文件属性 → 权限 → 勾选“允许作为程序执行”
-```
-
-**AppImage 报 FUSE 错误**（容器/精简系统常见）：
+**如果愿意用一次终端**（同样简单）：
 
 ```bash
-./xiaohuang-x86_64.AppImage --appimage-extract-and-run
+chmod +x xiaohuang-x86_64.AppImage && ./xiaohuang-x86_64.AppImage
 ```
 
-AppImage 由 GitHub Actions 在 Ubuntu 22.04 上自动构建（`.github/workflows/linux-build.yml`），**不需要你自己编译**；我推送代码或打 `v*` 标签时，下载页会自动更新。
+**AppImage 提示 FUSE 错误**（容器/精简系统）：
 
-### Windows（Win10 / Win11）
+```bash
+./xiaohuang.AppImage --appimage-extract-and-run
+```
 
-1. 下载本仓库（`Code → Download ZIP`）并解压；
-2. 双击 `小黄桌宠.exe`（`素材.nwp` 必须和它放在同一个文件夹）；
-3. 需要 .NET Framework 4.x —— Win10/11 自带，Win7/8 需另装。
+### Windows：也是双击
+
+到仓库首页或 Releases 下载 `小黄桌宠.exe` + `素材.nwp`，**放在同一个文件夹**，双击 exe。
+需要 .NET Framework 4.x（Win10/11 自带）。
 
 首次运行若被 Windows 拦截（exe 无数字签名），点「更多信息 → 仍要运行」，或在 ZIP 属性里勾选「解除锁定」后再解压。
 
-### Linux（从源码运行）
+### 从源码运行（给要改代码的人）
 
 ```bash
-cd Linux版
-./run.sh
+git clone https://github.com/bbtnoctrl/Small-Naiwa.git
+cd Small-Naiwa/Linux版
+./run.sh          # 依赖自动安装（约 40 MB，只装一次）
+```
+
+Windows 上也能跑同一份 Python 代码：
+
+```powershell
+C:\Users\Administrator\miniconda3\envs\torch\python.exe "路径\Linux版\小黄桌宠.py"
 ```
 
 **依赖自动安装**：第一次运行若系统缺 PyQt6，会自己在 `~/.local/share/xiaohuang/venv` 建独立环境安装（约 40 MB，只装一次，不动系统 Python）。
