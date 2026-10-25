@@ -22,13 +22,23 @@
 
 ```bash
 cd Linux版
-python3 -m pip install PyQt6 numpy     # 或者：sudo apt install python3-pyqt6 python3-numpy
 ./run.sh
 ```
 
-脚本会自动在自身目录和上一级目录里找 `素材.nwp`；也可以 `python3 小黄桌宠.py --assets /路径/素材.nwp`。
+**依赖自动安装**：第一次运行若系统缺 PyQt6，会自己在 `~/.local/share/xiaohuang/venv` 建独立环境安装（约 40 MB，只装一次，不动系统 Python）。
 
-Linux 版的完整说明（自启动、X11/Wayland 差异、排错）见 [`Linux版/README.md`](Linux版/README.md)。
+想让它出现在应用菜单、双击就能开：
+
+```bash
+./install.sh                # 装进应用菜单
+./install.sh --autostart    # 顺便开机自启
+```
+
+也可以先手动装依赖：`sudo apt install python3-pyqt6 python3-numpy`。
+
+脚本会自动在自身目录和上一级目录里找 `素材.nwp`；也可以用 `python3 小黄桌宠.py --assets /路径/素材.nwp` 指定。
+
+Linux 版的完整说明（一键安装、X11/Wayland 差异、打包成单文件二进制、排错）见 [`Linux版/README.md`](Linux版/README.md)。
 
 ---
 

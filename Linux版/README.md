@@ -2,24 +2,46 @@
 
 和 Windows 版是同一只小黄、同一份素材（`素材.nwp`），只是把外壳换成了 Python + PyQt6。
 
-## 依赖
-
-- Python 3.9+
-- PyQt6
+## 一键启动
 
 ```bash
-# 方式一：pip
-python3 -m pip install PyQt6
-
-# 方式二：发行版软件包（Debian / Ubuntu / 麒麟等）
-sudo apt install python3-pyqt6
+./run.sh
 ```
+
+**依赖是自动装的**：第一次运行会检测系统里有没有 PyQt6，缺了就自己在
+`~/.local/share/xiaohuang/venv` 建独立环境并安装（约 40 MB，只装一次，不动系统 Python）。
+之后每次启动都是一条命令直接进。
+
+想让它在**应用菜单里出现、双击就能开**：
+
+```bash
+./install.sh                  # 装进应用菜单
+./install.sh --autostart      # 顺便设置开机自启
+```
+
+装完在应用菜单搜「小黄」即可；文件管理器里双击也行（`小黄桌宠.py` 已可执行）。
+
+> 想要「下载后双击就能跑、连 Python 都不用装」，用 `./build-binary.sh` 打一个单文件二进制
+> （PyInstaller，约 60~90 MB），产物在 `dist/小黄桌宠`，可以和 `素材.nwp` 一起发给别人。
+> 注意这个必须在 Linux 上构建。
+
+## 手动安装依赖（可选）
+
+```bash
+# Debian / Ubuntu / 麒麟等发行版的软件包
+sudo apt install python3-pyqt6 python3-numpy
+
+# 或者用 pip 装到用户目录
+python3 -m pip install --user PyQt6 numpy
+```
+
+系统里已经有依赖时，`./run.sh` 会直接用它，不再建虚拟环境。
 
 ## 运行
 
 ```bash
 ./run.sh
-# 或者
+# 或者直接
 python3 小黄桌宠.py
 ```
 
