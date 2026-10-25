@@ -707,7 +707,8 @@ def pick_assets(arg):
     if arg:
         cands.append(arg)
     for d in app_dirs():
-        cands.append(os.path.join(d, "素材.nwp"))
+        for fn in ("素材.nwp", "assets.nwp"):      # assets.nwp 是给 GitHub Release 用的 ASCII 别名
+            cands.append(os.path.join(d, fn))
     for c in cands:
         if c and os.path.exists(c):
             return c
