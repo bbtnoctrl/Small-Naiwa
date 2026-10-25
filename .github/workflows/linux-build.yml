@@ -60,33 +60,36 @@ jobs:
       - name: 生成 ASCII 素材别名
         run: cp 素材.nwp assets.nwp
 
-      - name: 打包 tar.gz（解压后双击即可）
+      - name: 打包 tar.gz（解压后双击，不需要 FUSE）
         run: |
           set -e
           mkdir -p pack
-          if [ -f xiaohuang-x86_64.AppImage ]; then
-            cp xiaohuang-x86_64.AppImage pack/xiaohuang.AppImage
-            chmod +x pack/xiaohuang.AppImage
-          fi
+          cp Linux版/dist/xiaohuang pack/xiaohuang
+          chmod +x pack/xiaohuang
           cp 素材.nwp pack/素材.nwp
+          cp 素材.nwp pack/assets.nwp
           cp 使用说明.txt pack/使用说明.txt
           printf '%s\n' \
-            '小黄桌宠 · Linux 版' \
+            '小黄桌宠 · Linux 版（免安装）' \
             '' \
-            '【最省事：不用终端】' \
-            '1. 把整个压缩包解压（右键 -> 解压到此处）' \
-            '2. 双击 xiaohuang.AppImage' \
-            '3. 若双击没反应：右键它 -> 属性 -> 权限 -> 勾选「允许作为程序执行」，关闭后再右键 -> 运行' \
+            '【怎么用：两步】' \
+            '1. 右键 -> 解压到此处' \
+            '2. 双击文件 xiaohuang' \
             '' \
-            '【提示 FUSE / libfuse.so.2 错误时】' \
-            '   优先改用 .deb 安装包（双击安装）；' \
-            '   或在终端执行：./xiaohuang.AppImage --appimage-extract-and-run' \
+            '如果双击只是“打开方式”对话框，或双击没反应：' \
+            '  a) 先确认这个文件夹在你 Linux 自己的分区（如 主目录/下载），' \
+            '     不要放在 Windows 盘（NTFS）或 U 盘上，那里改不了执行权限；' \
+            '  b) 右键 xiaohuang -> 属性 -> 权限 -> 勾「允许作为程序执行」；' \
+            '  c) 再右键 -> 运行。' \
+            '' \
+            '如果仍然不行，改用 .deb 安装包（双击安装），那个是纯鼠标的。' \
             '' \
             '【右键菜单】' \
             '   小黄身上右键：啄肚肚 / 停止 / 大小 / 置顶 / 全屏隐藏 / 回到右下角 / 退出' \
             > pack/使用说明-先看这个.txt
           tar -czf xiaohuang-linux-x86_64.tar.gz -C pack .
           ls -lh xiaohuang-linux-x86_64.tar.gz
+          tar -tzvf xiaohuang-linux-x86_64.tar.gz
 
       - name: 打包 .deb（双击安装，纯鼠标）
         continue-on-error: true
@@ -144,13 +147,14 @@ jobs:
 
             装好后会出现在应用菜单，可右键「添加到收藏夹」。卸载：软件中心点卸载即可。
 
-            ### ② 免安装：解压后双击（任何发行版）
+            ### ② 免安装：解压后双击（任何发行版，不需要 FUSE）
 
             1. 下载 xiaohuang-linux-x86_64.tar.gz
             2. 右键 → 解压到此处
-            3. 双击解压出来的 xiaohuang.AppImage
+            3. 双击解压出来的 xiaohuang（普通可执行程序，不是 AppImage）
 
-            若双击没反应：右键 AppImage → 属性 → 权限 → 勾「允许此文件作为程序执行」→ 关闭 → 再右键 →「运行」。
+            放的位置必须是 Linux 自己的分区（如 主目录/下载），不能是 Windows 盘或 U 盘。
+            若双击没反应：右键 xiaohuang → 属性 → 权限 → 勾「允许作为程序执行」→ 关闭 → 右键「运行」。
 
             ### ③ 直接下 AppImage
 
