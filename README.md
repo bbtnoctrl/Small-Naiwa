@@ -10,17 +10,30 @@
 
 ## 快速开始
 
-### 直接下载现成程序（推荐）
+### 直接下载现成程序（推荐，不用编译）
 
-到 **[Releases](https://github.com/bbtnoctrl/Small-Naiwa/releases/latest)** 页面：
+到 **[Releases](https://github.com/bbtnoctrl/Small-Naiwa/releases/latest)** 页面，按系统挑一个：
 
-| 系统 | 下哪个 | 怎么用 |
-| --- | --- | --- |
-| **Linux** | `xiaohuang-x86_64.AppImage`（99 MB） | 下载后 `chmod +x` 再双击，或右键属性里勾选「允许执行」。免安装、**免 Python**、素材已内置 |
-| Linux（想自己管素材） | `xiaohuang` + `assets.nwp` | 两个文件放同一目录，运行 `./xiaohuang` |
-| **Windows** | `小黄桌宠.exe` + `素材.nwp` | 放同一目录，双击 exe |
+| 系统 | 下载 | 怎么用 | 说明 |
+| --- | --- | --- | --- |
+| **Linux（推荐）** | `xiaohuang-x86_64.AppImage`（99 MB） | 下载后执行 `chmod +x xiaohuang-x86_64.AppImage`，再双击或在终端 `./xiaohuang-x86_64.AppImage` | 免安装、**免 Python**；Python 运行时 + PyQt6 + numpy + 素材**全都打包在文件里**，运行时不联网 |
+| Linux（想自己换素材） | `xiaohuang`（84 MB）+ `assets.nwp`（15 MB） | 两个文件放同一目录，`chmod +x xiaohuang && ./xiaohuang` | 单文件可执行程序，换形象只需替换 `assets.nwp` |
+| **Windows** | 本仓库里的 `小黄桌宠.exe` + `素材.nwp` | 放同一目录，双击 exe | 需要 .NET Framework 4.x（Win10/11 自带） |
 
-Linux 的 AppImage 由 GitHub Actions 在 Ubuntu 22.04 上自动构建（见 `.github/workflows/linux-build.yml`），不需要你自己编译。
+**Linux 双击打不开时**（文件管理器没勾“允许执行”）：
+
+```bash
+chmod +x xiaohuang-x86_64.AppImage     # 加执行权限
+./xiaohuang-x86_64.AppImage            # 或在文件属性 → 权限 → 勾选“允许作为程序执行”
+```
+
+**AppImage 报 FUSE 错误**（容器/精简系统常见）：
+
+```bash
+./xiaohuang-x86_64.AppImage --appimage-extract-and-run
+```
+
+AppImage 由 GitHub Actions 在 Ubuntu 22.04 上自动构建（`.github/workflows/linux-build.yml`），**不需要你自己编译**；我推送代码或打 `v*` 标签时，下载页会自动更新。
 
 ### Windows（Win10 / Win11）
 
