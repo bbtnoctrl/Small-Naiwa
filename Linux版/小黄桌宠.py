@@ -26,6 +26,13 @@ import sys
 import zipfile
 from collections import OrderedDict
 
+try:
+    import numpy as np
+    HAS_NUMPY = True
+except Exception:
+    np = None
+    HAS_NUMPY = False
+
 from PyQt6.QtCore import QPoint, QPointF, QRectF, QSettings, QSize, Qt, QTimer
 from PyQt6.QtGui import (QAction, QColor, QCursor, QGuiApplication, QIcon, QImage,
                          QPainter, QPixmap, QTransform)
@@ -43,6 +50,11 @@ BELLY_RX, BELLY_RY = 86.0, 76.0
 EYE_HIT = 110.0          # 鼠标离眼睛多远算"看到最边上"
 GAZE_TAU = 0.13          # 眼球跟随平滑时间常数（秒）
 SCALES = [0.75, 1.0, 1.25]
+POKE_DURATION = 0.95          # 与 Windows 版一致
+LAND_DURATION = 0.90
+POKE_RX, POKE_RY = 98.0, 86.0 # 戳肚子影响的椭圆半径（画布坐标）
+POKE_TOP, POKE_BOTTOM = 127.0, 291.0
+POKE_NECK, POKE_LEGS = 28.0, 22.0
 SCALE_NAMES = ["小号", "标准", "大号"]
 
 
@@ -153,23 +165,24 @@ class Pet(QWidget):
         self.blink_start = -1.0
         self.next_blink = 4.0
         self.laugh_start = -1.0
-        self.poke_start = -1.0
-        self.tilt = 0.0
-        self.tilt_target = 0.0
-        self.press_scale = 1.0
+
+        # 以下全部沿用 Windows 版 Motion / Renderer 的变量与公式
+        self.poke_start = -1.0      # 戳肚子开始时间
+        self.poke_x = BELLY_CX      # 点击位置（画布坐标，接触点即变形中心）
+        self.poke_y = BELLY_CY
+        self.land_start = -1.0      # 松手落地弹跳
+        self.holding = False        # 按住未松手
+        self.drag_angle = 0.0       # 拖动倾斜角
+        self.drag_vel = 0.0
+        self.drag_target = 0.0
+        self.last_drag_t = 0.0
         self.dragging = False
         self.drag_off = QPoint()
-        self.drag_last_x = 0
-        self.drag_vel = 0.0
-        self.pressed = False
-        self.press_amt = 1.0        # 按下时的压扁量
-        self.land_start = -1.0      # 松手落地弹跳
-        self.land_amp = 0.0
-        self.poke_amt = 0.0         # 戳肚子的凹陷程度 0~1
         self.fs_hidden = False
         self.hidden_by_fs = False
         self.composite_key = None
         self.composite = None
+        self._poke_cache = {}
         self.t0 = time.monotonic()
         self._last_t = 0.0
 
@@ -328,8 +341,46 @@ class Pet(QWidget):
             self.laugh_start = -1
             self.next_blink = self.clock + 1.0
 
-    def poke(self):
+    def poke(self, pos=None):
+        """和 Windows 版一样：按下的位置就是变形中心。"""
         self.poke_start = self.clock
+        if pos is not None:
+            self.poke_x = pos.x() / self.scale
+            self.poke_y = pos.y() / self.scale
+        self.blink_start = -1.0
+
+    # -- 和 Windows 版一致的派生量
+    @property
+    def poking(self):
+        return self.poke_start >= 0
+
+    @property
+    def poke_amount(self):
+        if not self.poking:
+            return 0.0
+        t = self.clock - self.poke_start
+        if t < 0 or t >= POKE_DURATION:
+            return 0.0
+        if t < 0.12:
+            return 0.60 * math.sin(t / 0.12 * math.pi / 2)
+        return 0.60 * math.exp(-4.8 * (t - 0.12)) * math.cos(18 * (t - 0.12))
+
+    @property
+    def landing(self):
+        return self.land_start >= 0
+
+    @property
+    def squash(self):
+        if not self.landing:
+            return 0.0
+        t = self.clock - self.land_start
+        if t < 0:
+            return 0.0
+        return 0.055 * math.exp(-6 * t) * math.sin(19 * t)
+
+    @property
+    def moving(self):
+        return self.holding or self.landing or abs(self.drag_angle) > 0.02
 
     # -- 命中判断
     def in_belly(self, pos):
@@ -348,55 +399,48 @@ class Pet(QWidget):
             return
         self.dragging = False
         self.drag_off = e.globalPosition().toPoint() - self.frameGeometry().topLeft()
-        self.drag_last_x = e.globalPosition().toPoint().x()
         self.down_pos = e.position().toPoint()
         self.down_global = e.globalPosition().toPoint()
         self.down_time = self.clock
-        self.poke_pending = False
-        self.pressed = True
+        # Windows 版是按下就戳（InBelly 判定），双击时 Laugh 会把它清掉
+        if not self.laugh_start >= 0 and self.in_belly(self.down_pos):
+            self.poke(self.down_pos)
+        self.holding = True
+        self.last_drag_t = self.clock
         e.accept()
 
     def mouseMoveEvent(self, e):
         gpos = e.globalPosition().toPoint()
-        if e.buttons() & Qt.MouseButton.LeftButton:
-            if not self.dragging:
-                if (gpos - getattr(self, "down_global", gpos)).manhattanLength() > 4:
-                    self.dragging = True
-            if self.dragging:
-                newpos = gpos - self.drag_off
-                self.drag_vel = (gpos.x() - self.drag_last_x)
-                self.drag_last_x = gpos.x()
-                self.tilt_target = max(-9.0, min(9.0, -self.drag_vel * 0.8))
-                self.move(newpos)
-            e.accept()
+        if not (e.buttons() & Qt.MouseButton.LeftButton):
+            return
+        if not self.dragging:
+            if (gpos - getattr(self, "down_global", gpos)).manhattanLength() > 4:
+                self.dragging = True
+        if self.dragging:
+            self.move(gpos - self.drag_off)
+            dt = max(1.0 / 120.0, self.clock - self.last_drag_t)
+            last_x = getattr(self, "_last_gx", gpos.x())
+            dx = gpos.x() - last_x
+            self._last_gx = gpos.x()
+            self.last_drag_t = self.clock
+            self.drag_target = max(-7.0, min(7.0, dx / dt * 0.013))
+        e.accept()
 
     def mouseReleaseEvent(self, e):
         if e.button() != Qt.MouseButton.LeftButton:
             return
-        self.pressed = False
+        self.holding = False
+        self.drag_target = 0.0
         if self.dragging:
             self.dragging = False
-            self.tilt_target = 0.0
             self._save_pos()
             self.home_clamp()
-            # 落地弹跳：拖得越快弹得越明显
-            self.land_amp = min(0.085, 0.03 + abs(self.drag_vel) * 0.004)
-            self.land_start = self.clock
-        else:
-            # 先不立刻戳，等 260ms：如果是双击，mouseDoubleClickEvent 会把它取消掉
-            if self.in_belly(self.down_pos):
-                self.poke_pending = True
-                QTimer.singleShot(260, self._poke_if_still_waiting)
+        self.land_start = self.clock      # Windows 版同样在松手时开始落地
         e.accept()
-
-    def _poke_if_still_waiting(self):
-        if getattr(self, "poke_pending", False):
-            self.poke_pending = False
-            self.poke()
 
     def mouseDoubleClickEvent(self, e):
         if e.button() == Qt.MouseButton.LeftButton:
-            self.poke_pending = False
+            self.poke_start = -1.0        # 双击取消戳肚子
             self.start_laugh()
             e.accept()
 
@@ -474,30 +518,24 @@ class Pet(QWidget):
                 self.blink_start = -1
                 self.next_blink = self.clock + random.uniform(4.0, 8.0)
 
-        # 倾斜回正
-        self.tilt += (self.tilt_target - self.tilt) * min(1.0, dt / 0.12)
+        # 拖动倾斜：和 Windows 版同一套弹簧（160 刚度 / 25 阻尼 / ±7°）
+        if not self.holding or (now - self.last_drag_t > 0.10):
+            self.drag_target = 0.0
+        steps = 3
+        st = dt / steps
+        for _ in range(steps):
+            self.drag_vel += (160.0 * (self.drag_target - self.drag_angle) - 25.0 * self.drag_vel) * st
+            self.drag_angle += self.drag_vel * st
+        self.drag_angle = max(-7.0, min(7.0, self.drag_angle))
+        if (not self.holding) and abs(self.drag_angle) < 0.02 and abs(self.drag_vel) < 0.05:
+            self.drag_angle = 0.0
+            self.drag_vel = 0.0
 
-        # 按压量（按下时压扁，松手回弹）
-        target = 0.982 if self.pressed else 1.0
-        self.press_amt += (target - self.press_amt) * min(1.0, dt / 0.05)
-
-        # 落地弹跳计时
-        if self.land_start >= 0 and self.clock - self.land_start > 0.34:
+        # 计时结束（与 Windows 版一致的时长）
+        if self.landing and now - self.land_start >= LAND_DURATION:
             self.land_start = -1.0
-
-        # 戳肚子：先凹下去，再弹出来一点点（负值＝鼓），最后衰减回正
-        if self.poke_start >= 0:
-            t = self.clock - self.poke_start
-            if t < 0.12:
-                self.poke_amt = (t / 0.12) ** 0.7        # 快速凹下去
-            elif t < 0.28:
-                self.poke_amt = 1.0                      # 停一下
-            else:
-                q = t - 0.28
-                self.poke_amt = math.exp(-4.2 * q) * math.cos(2 * math.pi * 2.6 * q)
-            if t > 1.15:
-                self.poke_amt = 0.0
-                self.poke_start = -1.0
+        if self.poking and now - self.poke_start >= POKE_DURATION:
+            self.poke_start = -1.0
 
         # 啄肚肚结束
         if self.laugh_start >= 0:
@@ -550,58 +588,90 @@ class Pet(QWidget):
             self.composite_key = key
         return self.composite
 
-    def _draw_local_warp(self, p, img, w, h):
-        """肚子那一段局部压缩：脚不动，头随之下沉，肚子被压扁 + 横向微胀。"""
-        amt = self.poke_amt
-        if abs(amt) <= 0.012:
-            p.drawImage(QRectF(0, 0, w, h), img, QRectF(0, 0, img.width(), img.height()))
-            return
+    # -- 与 Windows 版 Renderer.WarpBelly 完全一致的椭圆网格变形
+    def _warp_belly(self, img, amount):
+        if not HAS_NUMPY or abs(amount) < 1e-4:
+            return img
+        key = (int(amount * 256), int(self.poke_x), int(self.poke_y))
+        hit = self._poke_cache.get(key)
+        if hit is not None:
+            return hit
+
         iw, ih = img.width(), img.height()
-        K = 0.20 * amt                      # 压扁比例
-        sy = h / float(ih)
-        cy = BELLY_CY / float(self.a.h) * ih
-        band = ih * 0.34
-        top_end = max(1.0, cy - band / 2.0)
-        bot_start = min(ih - 1.0, cy + band / 2.0)
-        band_h = bot_start - top_end
-        band_k = band_h * (1.0 - K)
-        delta = band_h - band_k             # 头往下沉的量
-        bot_h = ih - bot_start
-        ex = w * 0.035 * abs(amt)           # 横向微胀（鼓起时也变宽）
-        # 头部：整体下沉 delta
-        p.drawImage(QRectF(0, delta * sy, w, top_end * sy), img, QRectF(0, 0, iw, top_end))
-        # 肚子：压扁，底边贴住脚
-        p.drawImage(QRectF(-ex, (top_end + delta) * sy, w + 2 * ex, band_k * sy),
-                    img, QRectF(0, top_end, iw, band_h))
-        # 脚：原地不动
-        p.drawImage(QRectF(0, bot_start * sy, w, bot_h * sy), img, QRectF(0, bot_start, iw, bot_h))
+        fmt = img.convertToFormat(QImage.Format.Format_ARGB32_Premultiplied)
+        ptr = fmt.constBits()
+        ptr.setsize(fmt.sizeInBytes())
+        src = np.frombuffer(bytes(ptr), dtype=np.uint8).reshape((ih, fmt.bytesPerLine() // 4, 4))[:, :iw]
+        out = src.copy()
+
+        k = iw / float(self.a.w)          # 素材尺寸与画布比例（正常就是 1）
+        cx = self.poke_x * k
+        cy = self.poke_y * k
+        rx, ry = POKE_RX * k, POKE_RY * k
+        top = max(int(POKE_TOP * k), int(cy - ry), 0)
+        bottom = min(int(POKE_BOTTOM * k), int(cy + ry), ih - 2)
+        left = max(0, int(cx - rx))
+        right = min(iw - 2, int(cx + rx))
+        if right <= left or bottom <= top:
+            return img
+
+        ys, xs = np.mgrid[top:bottom + 1, left:right + 1]
+        dx = xs - cx
+        dy = ys - cy
+        r2 = dx * dx / (rx * rx) + dy * dy / (ry * ry)
+        inside = r2 < 1.0
+        neck = np.clip((ys - POKE_TOP * k) / (POKE_NECK * k), 0.0, 1.0)
+        legs = np.clip((POKE_BOTTOM * k - ys) / (POKE_LEGS * k), 0.0, 1.0)
+        fade = (neck * neck * (3 - 2 * neck)) * (legs * legs * (3 - 2 * legs))
+        fall = np.where(inside, (1.0 - r2) ** 2 * amount * fade, 0.0)
+
+        sx = np.clip(xs + dx * fall, 0, iw - 1.001)
+        sy = np.clip(ys + dy * fall * 0.6, 0, ih - 1.001)
+        ix = sx.astype(np.int32)
+        iy = sy.astype(np.int32)
+        fx = (sx - ix)[:, :, None]
+        fy = (sy - iy)[:, :, None]
+        a = src[iy, ix].astype(np.float32)
+        b = src[iy, ix + 1].astype(np.float32)
+        c = src[iy + 1, ix].astype(np.float32)
+        d = src[iy + 1, ix + 1].astype(np.float32)
+        samp = ((a * (1 - fx) + b * fx) * (1 - fy) + (c * (1 - fx) + d * fx) * fy)
+        samp = np.clip(samp, 0, 255).astype(np.uint8)
+        mask = inside[:, :, None]
+        out[top:bottom + 1, left:right + 1] = np.where(mask, samp, out[top:bottom + 1, left:right + 1])
+
+        res = QImage(out.data, iw, ih, iw * 4, QImage.Format.Format_ARGB32_Premultiplied).copy()
+        if len(self._poke_cache) > 48:
+            self._poke_cache.clear()
+        self._poke_cache[key] = res
+        return res
 
     def paintEvent(self, e):
         img = self._compose()
         if img is None:
             return
+        amt = self.poke_amount
+        if self.poking:
+            img = self._warp_belly(img, amt)
+
         p = QPainter(self)
         p.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, True)
-
-        sx = sy = 1.0
-        # 按住时的压扁
-        sy *= self.press_amt
-        sx *= 1.0 + (1.0 - self.press_amt) * 0.8
-
-        # 落地弹跳：衰减振荡
-        if self.land_start >= 0:
-            q = (self.clock - self.land_start) / 0.34
-            if 0.0 <= q <= 1.0:
-                osc = math.sin(q * math.pi * 2.2) * (1.0 - q) * self.land_amp
-                sy *= 1.0 - osc
-                sx *= 1.0 + osc * 0.7
-
         w, h = self.width(), self.height()
-        p.translate(w / 2.0, h)
-        p.rotate(self.tilt)
-        p.scale(sx, sy)
-        p.translate(-w / 2.0, -h)
-        self._draw_local_warp(p, img, w, h)
+
+        # 与 Windows 版 Renderer.Render 相同的变换
+        if self.moving:
+            s = self.squash
+            px = w * 0.5
+            py = h * (0.62 if self.holding else 0.994)
+            p.translate(px, py - (2 * self.scale if self.holding else 0))
+            p.rotate(self.drag_angle)
+            if self.holding:
+                p.scale(1.008, 1.018)
+            else:
+                p.scale(1.0 + s, 1.0 - s)
+            p.translate(-px, -py)
+
+        p.drawImage(QRectF(0, 0, w, h), img, QRectF(0, 0, img.width(), img.height()))
         p.end()
 
     def closeEvent(self, e):
