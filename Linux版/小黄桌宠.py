@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 bbtnoctrl
 """小黄桌宠 · Linux 版
 
 读取与 Windows 版相同的 素材.nwp（就是 zip + PNG），在 X11 / Wayland 桌面上显示一只

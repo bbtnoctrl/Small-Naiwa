@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 bbtnoctrl
 # 把「小黄桌宠」装进 Linux 应用菜单（可选开机自启）
 #
 #   ./install.sh            装到应用菜单

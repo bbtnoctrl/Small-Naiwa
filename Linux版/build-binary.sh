@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 bbtnoctrl
 # 可选：把 Linux 版打包成单文件可执行程序（别人下载后双击即可，无需 Python 环境）
 #
 #   ./build-binary.sh

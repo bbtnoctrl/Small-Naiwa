@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 bbtnoctrl
 # 小黄桌宠 · Linux 一键启动
 #
 #   ./run.sh            正常启动
