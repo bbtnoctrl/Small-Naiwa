@@ -5,6 +5,7 @@ name: Linux 打包
 on:
   push:
     branches: [main]
+    tags: ["v*"]
     paths:
       - "Linux版/**"
       - ".github/workflows/linux-build.yml"
