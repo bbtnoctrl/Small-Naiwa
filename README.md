@@ -10,6 +10,18 @@
 
 ## 快速开始
 
+### 直接下载现成程序（推荐）
+
+到 **[Releases](https://github.com/bbtnoctrl/Small-Naiwa/releases/latest)** 页面：
+
+| 系统 | 下哪个 | 怎么用 |
+| --- | --- | --- |
+| **Linux** | `xiaohuang-x86_64.AppImage`（99 MB） | 下载后 `chmod +x` 再双击，或右键属性里勾选「允许执行」。免安装、**免 Python**、素材已内置 |
+| Linux（想自己管素材） | `xiaohuang` + `assets.nwp` | 两个文件放同一目录，运行 `./xiaohuang` |
+| **Windows** | `小黄桌宠.exe` + `素材.nwp` | 放同一目录，双击 exe |
+
+Linux 的 AppImage 由 GitHub Actions 在 Ubuntu 22.04 上自动构建（见 `.github/workflows/linux-build.yml`），不需要你自己编译。
+
 ### Windows（Win10 / Win11）
 
 1. 下载本仓库（`Code → Download ZIP`）并解压；
@@ -18,7 +30,7 @@
 
 首次运行若被 Windows 拦截（exe 无数字签名），点「更多信息 → 仍要运行」，或在 ZIP 属性里勾选「解除锁定」后再解压。
 
-### Linux（X11 / Wayland）
+### Linux（从源码运行）
 
 ```bash
 cd Linux版
