@@ -60,7 +60,7 @@ jobs:
       - name: 生成 ASCII 素材别名
         run: cp 素材.nwp assets.nwp
 
-      - name: 打包 tar.gz（解压后双击即可，免终端）
+      - name: 打包 tar.gz（解压后双击即可）
         run: |
           set -e
           mkdir -p pack
@@ -73,24 +73,42 @@ jobs:
           printf '%s\n' \
             '小黄桌宠 · Linux 版' \
             '' \
-            '【最省事：图形界面，不用开终端】' \
-            '1. 先把整个压缩包解压（右键 → 解压到此处）' \
-            '2. 双击 xiaohuang.AppImage 即可运行' \
-            '3. 如果双击没反应：右键它 → 属性 → 权限 → 勾选“允许作为程序执行”，再双击' \
+            '【最省事：不用终端】' \
+            '1. 把整个压缩包解压（右键 -> 解压到此处）' \
+            '2. 双击 xiaohuang.AppImage' \
+            '3. 若双击没反应：右键它 -> 属性 -> 权限 -> 勾选「允许作为程序执行」，关闭后再右键 -> 运行' \
             '' \
-            '【如果提示 FUSE 错误（容器/精简系统）】' \
-            '   在终端里执行：./xiaohuang.AppImage --appimage-extract-and-run' \
+            '【提示 FUSE / libfuse.so.2 错误时】' \
+            '   优先改用 .deb 安装包（双击安装）；' \
+            '   或在终端执行：./xiaohuang.AppImage --appimage-extract-and-run' \
             '' \
             '【右键菜单】' \
             '   小黄身上右键：啄肚肚 / 停止 / 大小 / 置顶 / 全屏隐藏 / 回到右下角 / 退出' \
-            '' \
-            '【素材】' \
-            '   AppImage 已内置素材，不需要额外文件；' \
-            '   如果用的是可执行文件 xiaohuang，则必须和 素材.nwp 放在同一目录' \
             > pack/使用说明-先看这个.txt
           tar -czf xiaohuang-linux-x86_64.tar.gz -C pack .
           ls -lh xiaohuang-linux-x86_64.tar.gz
-          tar -tzf xiaohuang-linux-x86_64.tar.gz
+
+      - name: 打包 .deb（双击安装，纯鼠标）
+        continue-on-error: true
+        run: |
+          set -e
+          rm -rf deb
+          mkdir -p deb/DEBIAN deb/opt/xiaohuang deb/usr/bin
+          mkdir -p deb/usr/share/applications deb/usr/share/icons/hicolor/256x256/apps
+          cp Linux版/dist/xiaohuang deb/opt/xiaohuang/xiaohuang
+          cp 素材.nwp deb/opt/xiaohuang/素材.nwp
+          cp 素材.nwp deb/opt/xiaohuang/assets.nwp
+          cp 使用说明.txt deb/opt/xiaohuang/使用说明.txt
+          if [ -f 形象/形象_245x312.png ]; then
+            cp 形象/形象_245x312.png deb/usr/share/icons/hicolor/256x256/apps/xiaohuang.png
+          fi
+          printf '%s\n' '[Desktop Entry]' 'Type=Application' 'Name=小黄桌宠' 'Name[en]=XiaoHuang Desktop Pet' 'Comment=会转眼、眨眼、戳肚子、双击啄肚肚的桌面宠物' 'Exec=/opt/xiaohuang/xiaohuang' 'Path=/opt/xiaohuang' 'Icon=xiaohuang' 'Terminal=false' 'Categories=Game;Amusement;' > deb/usr/share/applications/xiaohuang.desktop
+          ln -sf /opt/xiaohuang/xiaohuang deb/usr/bin/xiaohuang
+          printf '%s\n' 'Package: xiaohuang' 'Version: 1.3.0' 'Section: games' 'Priority: optional' 'Architecture: amd64' 'Maintainer: bbtnoctrl <299799212+bbtnoctrl@users.noreply.github.com>' 'Depends: libxcb-cursor0' 'Description: XiaoHuang Desktop Pet' ' A small desktop pet that blinks, tracks your cursor and pokes its belly.' > deb/DEBIAN/control
+          chmod 755 deb/DEBIAN deb/opt/xiaohuang/xiaohuang
+          chmod 644 deb/usr/share/applications/xiaohuang.desktop
+          dpkg-deb --build --root-owner-group deb xiaohuang_1.3.0_amd64.deb
+          ls -lh *.deb
 
       - name: 上传构建产物
         uses: actions/upload-artifact@v4
@@ -100,6 +118,7 @@ jobs:
             Linux版/dist/xiaohuang
             xiaohuang-x86_64.AppImage
             xiaohuang-linux-x86_64.tar.gz
+            xiaohuang_1.3.0_amd64.deb
           if-no-files-found: warn
 
       - name: 发布到 Release（打 tag 时）
@@ -107,43 +126,50 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
+            xiaohuang_1.3.0_amd64.deb
             xiaohuang-linux-x86_64.tar.gz
             xiaohuang-x86_64.AppImage
             Linux版/dist/xiaohuang
             assets.nwp
           fail_on_unmatched_files: false
           body: |
-            ## Linux 用户：下载哪个？
+            ## Linux：三种装法，按省事程度排
 
-            ### 方案一（推荐，双击就行，不用开终端）
+            ### ① 纯鼠标：.deb 安装包（Ubuntu / Debian / 麒麟 / UOS 推荐）
 
-            1. 下载 `xiaohuang-linux-x86_64.tar.gz`
-            2. 右键 → 「**解压到此处**」
-            3. 双击里面的 **`xiaohuang.AppImage`** —— 运行
+            1. 下载 xiaohuang_1.3.0_amd64.deb
+            2. 双击它 —— 会打开软件安装窗口
+            3. 点「安装」（会弹一次密码框，输入开机密码）
+            4. 应用菜单里搜「小黄」，点开即用
 
-            > 压缩包会把「可执行权限」一起解出来，所以解压后双击就能跑，不需要 `chmod`。
-            > 如果双击没反应：右键 AppImage → 属性 → 权限 → 勾选「允许作为程序执行」，再双击。
+            装好后会出现在应用菜单，可右键「添加到收藏夹」。卸载：软件中心点卸载即可。
 
-            ### 方案二：直接下 AppImage（需要一次权限设置）
+            ### ② 免安装：解压后双击（任何发行版）
 
-            | 步骤 | 操作 |
+            1. 下载 xiaohuang-linux-x86_64.tar.gz
+            2. 右键 → 解压到此处
+            3. 双击解压出来的 xiaohuang.AppImage
+
+            若双击没反应：右键 AppImage → 属性 → 权限 → 勾「允许此文件作为程序执行」→ 关闭 → 再右键 →「运行」。
+
+            ### ③ 直接下 AppImage
+
+            下载 xiaohuang-x86_64.AppImage → 在属性里勾选「允许作为程序执行」→ 双击。
+
+            ### ④ 给要改代码的人
+
+            下载 xiaohuang + assets.nwp 放同一目录运行；或 clone 仓库后在 Linux版/ 里执行 ./run.sh（依赖自动安装）。
+
+            ### 常见问题
+
+            | 现象 | 处理 |
             | --- | --- |
-            | 1 | 下载 `xiaohuang-x86_64.AppImage` |
-            | 2 | 右键 → 属性 → 权限 → 勾选「允许作为程序执行」（或终端 `chmod +x 文件名`） |
-            | 3 | 双击运行 |
-
-            ### 方案三：可执行文件 + 素材
-
-            下载 `xiaohuang` 和 `assets.nwp`，放在同一个文件夹，双击 `xiaohuang`（或运行 `./xiaohuang`）。
-
-            提示 FUSE 错误时：`./xiaohuang.AppImage --appimage-extract-and-run`
+            | 双击 AppImage 没反应 | 属性 → 权限 → 勾「允许作为程序执行」，再右键「运行」 |
+            | 提示 FUSE / libfuse.so.2 | 改用 .deb，或执行 ./xiaohuang.AppImage --appimage-extract-and-run |
+            | 提示 libxcb-cursor 缺失 | .deb 已声明该依赖会自动装；手动：sudo apt install libxcb-cursor0 |
 
             ---
 
             ## Windows 用户
 
-            在本仓库首页下载 `小黄桌宠.exe` + `素材.nwp`，放同一文件夹，双击 exe。
-
-            ## 从源码运行（给要改代码的人）
-
-            `git clone` 后在 `Linux版/` 里执行 `./run.sh`，依赖会自动安装。
+            在仓库首页下载 小黄桌宠.exe + 素材.nwp，放同一文件夹，双击 exe。
