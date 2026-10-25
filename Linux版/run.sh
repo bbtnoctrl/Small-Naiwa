@@ -47,10 +47,19 @@ if ! "$SYS_PY" -m venv "$VENV" >/dev/null 2>&1; then
 fi
 
 "$VENV/bin/python" -m pip install --quiet --upgrade pip || true
+
+# 先走默认源；失败（国内网络常见）自动换清华镜像再试一次
 if ! "$VENV/bin/python" -m pip install --quiet PyQt6 numpy; then
-  echo "依赖安装失败。可以换国内镜像再试：" >&2
-  echo "    $VENV/bin/python -m pip install PyQt6 numpy -i https://pypi.tuna.tsinghua.edu.cn/simple" >&2
-  exit 1
+  echo "默认源失败，改用清华镜像重试…"
+  if ! "$VENV/bin/python" -m pip install --quiet PyQt6 numpy \
+        -i https://pypi.tuna.tsinghua.edu.cn/simple; then
+    echo "依赖安装失败。可选做法：" >&2
+    echo "  1) 换阿里云镜像再试：" >&2
+    echo "     $VENV/bin/python -m pip install PyQt6 numpy -i https://mirrors.aliyun.com/pypi/simple" >&2
+    echo "  2) 用发行版软件包（不占这 40 MB）：" >&2
+    echo "     sudo apt install python3-pyqt6 python3-numpy" >&2
+    exit 1
+  fi
 fi
 
 echo "=== 环境就绪，启动 ==="
