@@ -1,7 +1,6 @@
 name: Linux 打包
 
-# 推送到 main（改动了 Linux 版或本工作流）时自动构建，
-# 也可以在 Actions 页面手动运行（Run workflow）。
+# 推送到 main（改动了 Linux 版或本文件）、打 v* 标签、或手动运行时构建。
 on:
   push:
     branches: [main]
@@ -38,41 +37,29 @@ jobs:
           ls -lh dist/
 
       - name: 打成可直接双击的 AppImage
-        id: appimage
         continue-on-error: true
         run: |
           set -e
           mkdir -p AppDir/usr/bin AppDir/usr/share/icons/hicolor/256x256/apps
           cp Linux版/dist/xiaohuang AppDir/usr/bin/xiaohuang
           cp 素材.nwp AppDir/usr/bin/素材.nwp
+          cp 素材.nwp AppDir/usr/bin/assets.nwp
           cp 使用说明.txt AppDir/usr/bin/使用说明.txt
           if [ -f 形象/形象_245x312.png ]; then
             cp 形象/形象_245x312.png AppDir/usr/share/icons/hicolor/256x256/apps/xiaohuang.png
             cp 形象/形象_245x312.png AppDir/xiaohuang.png
           fi
-          cat > AppDir/AppRun <<'EOF'
-          #!/bin/sh
-          HERE="$(dirname "$(readlink -f "$0")")"
-          exec "$HERE/usr/bin/xiaohuang" "$@"
-          EOF
+          printf '%s\n' '#!/bin/sh' 'HERE="$(dirname "$(readlink -f "$0")")"' 'exec "$HERE/usr/bin/xiaohuang" "$@"' > AppDir/AppRun
           chmod +x AppDir/AppRun
-          cat > AppDir/xiaohuang.desktop <<'EOF'
-          [Desktop Entry]
-          Type=Application
-          Name=XiaoHuang Desktop Pet
-          Name[zh_CN]=小黄桌宠
-          Comment=A small desktop pet that blinks, tracks your cursor and pokes its belly
-          Exec=xiaohuang
-          Icon=xiaohuang
-          Categories=Game;Amusement;
-          Terminal=false
-          EOF
+          printf '%s\n' '[Desktop Entry]' 'Type=Application' 'Name=XiaoHuang Desktop Pet' 'Name[zh_CN]=小黄桌宠' 'Exec=xiaohuang' 'Icon=xiaohuang' 'Categories=Game;Amusement;' 'Terminal=false' > AppDir/xiaohuang.desktop
           chmod +x AppDir/xiaohuang.desktop
-          curl -sL -o appimagetool \
-            https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
+          curl -sL -o appimagetool https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
           chmod +x appimagetool
           ARCH=x86_64 ./appimagetool --appimage-extract-and-run AppDir xiaohuang-x86_64.AppImage
           ls -lh *.AppImage
+
+      - name: 准备 Release 用的 ASCII 文件名
+        run: cp 素材.nwp assets.nwp
 
       - name: 上传构建产物
         uses: actions/upload-artifact@v4
@@ -83,10 +70,7 @@ jobs:
             xiaohuang-x86_64.AppImage
           if-no-files-found: warn
 
-      - name: 准备 Release 用的 ASCII 文件名
-        run: cp 素材.nwp assets.nwp
-
-      - name: 发布到 Release（仅在打 tag/release 时）
+      - name: 发布到 Release（打 tag 时）
         if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'release'
         uses: softprops/action-gh-release@v2
         with:
@@ -94,16 +78,16 @@ jobs:
             Linux版/dist/xiaohuang
             assets.nwp
             xiaohuang-x86_64.AppImage
-          body: |
-            ## 下载哪个？
-
-            | 文件 | 适合谁 | 怎么用 |
-            | --- | --- | --- |
-            | xiaohuang-x86_64.AppImage | **大多数人（推荐）** | 下载后 chmod +x，双击即可，免安装、免 Python、素材已内置 |
-            | xiaohuang | 想自己管理素材 | 单文件可执行程序，把它和 ssets.nwp 放同一文件夹，./xiaohuang |
-            | ssets.nwp | 配合上一行 | 素材包（也可改名回 素材.nwp） |
-
-            AppImage 若提示缺少 FUSE：./xiaohuang-x86_64.AppImage --appimage-extract-and-run
-
-            Windows 用户请直接在仓库根目录下载 小黄桌宠.exe + 素材.nwp。
           fail_on_unmatched_files: false
+          body: |
+            ## Linux 版下载说明
+
+            | 文件 | 适合谁 | 用法 |
+            | --- | --- | --- |
+            | xiaohuang-x86_64.AppImage | 大多数人（推荐） | 下载后 `chmod +x` 再双击；免安装、免 Python、素材已内置 |
+            | xiaohuang | 想自己管理素材 | 单文件可执行程序，与 assets.nwp 放同一文件夹，运行 `./xiaohuang` |
+            | assets.nwp | 配合上一行 | 素材包（也可改名回 `素材.nwp`） |
+
+            AppImage 提示缺少 FUSE 时：`./xiaohuang-x86_64.AppImage --appimage-extract-and-run`
+
+            Windows 用户请直接在仓库根目录下载 `小黄桌宠.exe` 和 `素材.nwp`。
