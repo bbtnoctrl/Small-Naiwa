@@ -12,3 +12,7 @@ desktop.ini
 *.tmp
 *.log
 ~$*
+
+# Python
+__pycache__/
+*.pyc
