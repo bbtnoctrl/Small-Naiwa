@@ -26,6 +26,19 @@
 2. 双击 exe（需要 .NET Framework 4.x，Win10/11 自带）；
 3. 设置保存在 `%LOCALAPPDATA%\XiaoHuangPet\settings.ini`。
 
+### Linux 版
+
+`Linux版/` 是一份 Python + PyQt6 的移植版，读**同一份 `素材.nwp`**：
+
+```bash
+cd Linux版
+python3 -m pip install PyQt6
+./run.sh
+```
+
+支持眨眼、眼球跟随、戳肚子、双击啄肚肚、拖动、托盘菜单、三档大小、置顶。
+X11 下功能完整；Wayland 下受安全限制，眼球只在鼠标进入窗口时跟随（详见 `Linux版/README.md`）。
+
 ## 文件结构
 
 ```
@@ -44,6 +57,11 @@ README.md                 本文件
     make_assets_3d_plain.py  备用：不做眼球合成，直接用视频原图
 形象/                     形象图与预览
 预览/                     交互演示 mp4 / gif
+Linux版/                  Linux 移植版（Python + PyQt6）
+  小黄桌宠.py             主程序
+  run.sh                  启动脚本
+  README.md               Linux 使用说明
+  requirements.txt        依赖（PyQt6）
 ```
 
 ## 从源码编译
