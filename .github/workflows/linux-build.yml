@@ -113,6 +113,19 @@ jobs:
           dpkg-deb --build --root-owner-group deb xiaohuang_1.5.0_amd64.deb
           ls -lh *.deb
 
+      - name: 在干净的 Ubuntu 24.04 里真装一遍（验证包本身没问题）
+        continue-on-error: true
+        run: |
+          set -x
+          docker run --rm -v "$PWD":/w -w /w ubuntu:24.04 bash -lc '
+            apt-get update -qq &&
+            DEBIAN_FRONTEND=noninteractive apt-get install -y -qq ./xiaohuang_1.5.0_amd64.deb &&
+            dpkg -s xiaohuang | head -8 &&
+            ls -l /opt/xiaohuang | head -5 &&
+            test -x /opt/xiaohuang/xiaohuang &&
+            echo "DEB-INSTALL-OK"
+          '
+
       - name: 上传构建产物
         uses: actions/upload-artifact@v4
         with:
