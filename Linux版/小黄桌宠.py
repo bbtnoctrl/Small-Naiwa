@@ -485,16 +485,17 @@ class Pet(QWidget):
         if self.land_start >= 0 and self.clock - self.land_start > 0.34:
             self.land_start = -1.0
 
-        # 戳肚子凹陷量：快进慢出
+        # 戳肚子：先凹下去，再弹出来一点点（负值＝鼓），最后衰减回正
         if self.poke_start >= 0:
             t = self.clock - self.poke_start
-            if t < 0.13:
-                self.poke_amt = t / 0.13
-            elif t < 0.42:
-                self.poke_amt = 1.0 - 0.12 * ((t - 0.13) / 0.29)
-            elif t < 1.0:
-                self.poke_amt = 0.88 * (1.0 - (t - 0.42) / 0.58)
+            if t < 0.12:
+                self.poke_amt = (t / 0.12) ** 0.7        # 快速凹下去
+            elif t < 0.28:
+                self.poke_amt = 1.0                      # 停一下
             else:
+                q = t - 0.28
+                self.poke_amt = math.exp(-4.2 * q) * math.cos(2 * math.pi * 2.6 * q)
+            if t > 1.15:
                 self.poke_amt = 0.0
                 self.poke_start = -1.0
 
@@ -552,7 +553,7 @@ class Pet(QWidget):
     def _draw_local_warp(self, p, img, w, h):
         """肚子那一段局部压缩：脚不动，头随之下沉，肚子被压扁 + 横向微胀。"""
         amt = self.poke_amt
-        if amt <= 0.01:
+        if abs(amt) <= 0.012:
             p.drawImage(QRectF(0, 0, w, h), img, QRectF(0, 0, img.width(), img.height()))
             return
         iw, ih = img.width(), img.height()
@@ -566,7 +567,7 @@ class Pet(QWidget):
         band_k = band_h * (1.0 - K)
         delta = band_h - band_k             # 头往下沉的量
         bot_h = ih - bot_start
-        ex = w * 0.035 * amt                # 横向微胀
+        ex = w * 0.035 * abs(amt)           # 横向微胀（鼓起时也变宽）
         # 头部：整体下沉 delta
         p.drawImage(QRectF(0, delta * sy, w, top_end * sy), img, QRectF(0, 0, iw, top_end))
         # 肚子：压扁，底边贴住脚
