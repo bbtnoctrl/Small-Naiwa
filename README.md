@@ -10,28 +10,47 @@
 
 ## 快速开始
 
-### Linux：不用开终端，双击就能跑
+### Linux：三种装法（按省事程度排）
 
-1. 到 **[Releases](https://github.com/bbtnoctrl/Small-Naiwa/releases/latest)** 下载 **`xiaohuang-linux-x86_64.tar.gz`**（约 100 MB）
-2. 右键压缩包 →「**解压到此处**」
-3. 双击解压出来的 **`xiaohuang.AppImage`** —— 小黄就出来了
+#### ① 纯鼠标：`.deb` 安装包 ⭐ 推荐（Ubuntu / Debian / 麒麟 / UOS / Deepin）
 
-> 压缩包会把可执行权限一起解出来，所以**不需要 `chmod`、不需要终端**。
-> 若双击没反应（部分文件管理器默认不执行）：右键 AppImage →「属性」→「权限」→ 勾选「**允许作为程序执行**」，再双击。
+1. 到 **[Releases](https://github.com/bbtnoctrl/Small-Naiwa/releases/latest)** 下载 **`xiaohuang_1.3.0_amd64.deb`**
+2. **双击它** —— 系统会打开「软件安装」窗口
+3. 点「安装」，弹出密码框时输入开机密码
+4. 在应用菜单里搜「小黄」，点开即用
 
-**如果愿意用一次终端**（同样简单）：
+装好后就像普通软件一样在应用菜单里，可右键「添加到收藏夹」；卸载在软件中心点一下即可。
+
+> 这个方式不用管「打开方式」「允许作为程序执行」「libfuse」这些事——全都由安装器处理。
+> 如果你的系统是 rpm 系（Fedora / CentOS / openEuler），请用 ② 或 ③。
+
+#### ② 免安装：解压后双击（任何发行版）
+
+1. 下载 **`xiaohuang-linux-x86_64.tar.gz`**
+2. 右键 →「**解压到此处**」
+3. 双击解压出来的 **`xiaohuang.AppImage`**
+
+> 压缩包会把可执行权限一起解出来，所以**不需要 `chmod`**。
+> 若双击没反应（有些文件管理器对 AppImage 只显示「磁盘映像」）：右键 AppImage →「属性」→「权限」→ 勾「**允许此文件作为程序执行**」→ 关闭 → 右键 →「**运行**」。
+> **文件一定要放在 Linux 自己的分区**（如 `~/下载`、`~/桌面`）；放在 NTFS / U 盘上权限改不了，永远运行不了。
+
+#### ③ 直接下单个 AppImage（需一次权限设置）
+
+下载 `xiaohuang-x86_64.AppImage` → 右键属性里勾「允许作为程序执行」→ 双击。
+
+**愿意用一次终端的话**：
 
 ```bash
 chmod +x xiaohuang-x86_64.AppImage && ./xiaohuang-x86_64.AppImage
 ```
 
-**AppImage 提示 FUSE 错误**（容器/精简系统）：
+**提示 FUSE / `libfuse.so.2` 错误**（Ubuntu 22.04+ 常见）：改用 ① 的 `.deb`，或执行
 
 ```bash
 ./xiaohuang.AppImage --appimage-extract-and-run
 ```
 
-### Windows：也是双击
+### Windows：双击 exe
 
 到仓库首页或 Releases 下载 `小黄桌宠.exe` + `素材.nwp`，**放在同一个文件夹**，双击 exe。
 需要 .NET Framework 4.x（Win10/11 自带）。
@@ -118,6 +137,15 @@ Linux 版是**本项目独立实现的一套桌宠外壳**，不是把 exe 塞�
 重复启动不会出现两只小黄：第二次启动会把命令转给已运行的实例。
 
 ---
+
+## Releases 里的产物
+
+| 文件 | 说明 |
+| --- | --- |
+| `xiaohuang_1.3.0_amd64.deb` | deb 系发行版的安装包，双击安装 |
+| `xiaohuang-linux-x86_64.tar.gz` | 解压即用（AppImage + 素材 + 说明） |
+| `xiaohuang-x86_64.AppImage` | 单文件 AppImage |
+| `xiaohuang` + `assets.nwp` | 单文件可执行程序 + 素材 |
 
 ## 文件结构
 
