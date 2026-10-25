@@ -1,0 +1,16 @@
+# 默认按文本处理，但 shell 脚本和 Python 必须保持 LF，
+# 否则在 Linux 上会出现 "bad interpreter: /usr/bin/env bash^M"
+* text=auto
+
+*.sh   text eol=lf
+*.py   text eol=lf
+*.md   text eol=lf
+*.txt  text eol=lf
+*.cs   text eol=crlf
+*.cmd  text eol=crlf
+*.png  binary
+*.jpg  binary
+*.gif  binary
+*.mp4  binary
+*.ico  binary
+*.nwp  binary
