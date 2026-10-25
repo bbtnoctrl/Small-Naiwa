@@ -317,8 +317,8 @@ class Pet(QWidget):
         self.cfg.setValue("hidefs", "true" if self.hide_fullscreen else "false")
 
     def open_help(self):
-        for cand in (os.path.join(os.path.dirname(os.path.abspath(__file__)), "使用说明.txt"),
-                     os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "使用说明.txt")):
+        for d in app_dirs():
+            cand = os.path.join(d, "使用说明.txt")
             if os.path.exists(cand):
                 os.system('xdg-open "%s" >/dev/null 2>&1 &' % cand)
                 return
@@ -692,14 +692,22 @@ def notify_running(mode):
     return False
 
 
-def pick_assets(arg):
+def app_dirs():
+    """素材查找目录：脚本目录 / 上一级目录 / 当前目录；打成单文件时还包括可执行文件所在目录。"""
+    dirs = []
+    if getattr(sys, "frozen", False):
+        dirs.append(os.path.dirname(os.path.abspath(sys.executable)))
     here = os.path.dirname(os.path.abspath(__file__))
+    dirs += [here, os.path.dirname(here), os.getcwd()]
+    return dirs
+
+
+def pick_assets(arg):
     cands = []
     if arg:
         cands.append(arg)
-    cands += [os.path.join(here, "素材.nwp"),
-              os.path.join(os.path.dirname(here), "素材.nwp"),
-              os.path.join(os.getcwd(), "素材.nwp")]
+    for d in app_dirs():
+        cands.append(os.path.join(d, "素材.nwp"))
     for c in cands:
         if c and os.path.exists(c):
             return c
